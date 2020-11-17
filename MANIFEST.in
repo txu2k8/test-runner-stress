@@ -4,6 +4,7 @@ include *.rst
 include *.txt
 include .gitignore
 include LICENSE
+include test/report.html
 
 global-exclude __pycache__ *.py[cod]
 global-exclude *.so *.dylib *.log

@@ -10,6 +10,7 @@
 
 # pip install wheel
 # pip install twine
+# python setup.py check
 
 rm -rf ./build ./stress-runner.egg-info ./dist
 python setup.py sdist bdist_wheel
