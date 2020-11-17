@@ -45,7 +45,7 @@ def _find_packages():
 
 
 setup(
-    name='stress-stressrunner',
+    name='stressrunner',
     python_requires='>=3.4.0',
     version='1.0.1',
     description="A stressrunner similar as TextTestRunner for stress test, support for html report.",
