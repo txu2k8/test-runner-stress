@@ -1,0 +1,11 @@
+include *.in
+include *.ini
+include *.rst
+include *.txt
+include .gitignore
+include LICENSE
+include storage_test.py
+include consistency_test.py
+
+global-exclude __pycache__ *.py[cod]
+global-exclude *.so *.dylib *.log
