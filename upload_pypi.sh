@@ -11,6 +11,6 @@
 # pip install wheel
 # pip install twine
 
-rm -rf ./build ./storage_test.egg-info ./dist
+rm -rf ./build ./stress-runner.egg-info ./dist
 python setup.py sdist bdist_wheel
 twine upload  dist/*
