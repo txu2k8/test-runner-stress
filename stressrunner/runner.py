@@ -22,7 +22,7 @@ The simplest way to use this is to invoke its main method. E.g.
     ... define your tests ...
     if __name__ == '__main__':
         StressRunner.main()
-For more customization options, instantiates a HTMLTestRunner object.
+For more customization options, instantiates a StressRunner object.
 StressRunner is a counterpart to unittest's TextTestRunner. E.g.
     # output to a file
     stressrunner = StressRunner.StressRunner(
@@ -48,7 +48,6 @@ import unittest
 from stressrunner.mail import send_mail
 from stressrunner.report import REPORT_TEMPLATE
 
-
 # =============================
 # --- Global
 # =============================
@@ -73,16 +72,17 @@ DEFAULT_TITLE = 'Test Report'
 DEFAULT_DESCRIPTION = ''
 DEFAULT_TESTER = __author__
 STATUS = {
-        0: 'PASS',
-        1: 'FAIL',
-        2: 'ERROR',
-        3: 'SKIP',
-        4: 'PASS(Canceled By User)',
-    }
+    0: 'PASS',
+    1: 'FAIL',
+    2: 'ERROR',
+    3: 'SKIP',
+    4: 'PASS(Canceled By User)',
+}
 
 
 class MailInfo(object):
     """Define the mail info attributes here"""
+
     def __init__(self, m_from="", m_to="", host="", user="", password="", port=465, tls=True,
                  subject="Test Report", content="", attachments=None):
         self.m_from = m_from
@@ -150,12 +150,12 @@ def escape(value):
 # ------------------------------------------------------------------------
 # The redirectors below are used to capture output during testing. Output
 # sent to sys.stdout and sys.stderr are automatically captured. However
-# in some cases sys.stdout is already cached before HTMLTestRunner is
+# in some cases sys.stdout is already cached before StressRunner is
 # invoked (e.g. calling logging.basicConfig). In order to capture those
 # output, use the redirectors for the cached stream.
 #
 # e.g.
-#   >>> logging.basicConfig(stream=HTMLTestRunner.stdout_redirector)
+#   >>> logging.basicConfig(stream=StressRunner.stdout_redirector)
 #   >>>
 
 
@@ -174,13 +174,13 @@ class OutputRedirector(object):
                 pattern = re.compile(r'[^a]\W\d+[m]\W?')
             else:
                 pattern = re.compile(r'')
-            s_mesg = pattern.sub('', s+"\n")
+            s_mesg = pattern.sub('', s + "\n")
             s_mesg = s_mesg.encode(encoding="utf-8")
             self.fp.write(s_mesg)
 
         if 'DESCRIBE:' in s:
             pattern = re.compile(r'.+DESCRIBE:\W+\d+[m]\s')
-            s_mesg = pattern.sub('', s+"\n")
+            s_mesg = pattern.sub('', s + "\n")
             s_mesg = s_mesg.encode(encoding="utf-8")
             self.fp.write(s_mesg)
         self.__console__.write(str(s))
@@ -349,7 +349,7 @@ class _TestResult(unittest.TestResult):
         self.tc_loop += 1
         self.success_count += 1
         unittest.TestResult.addSuccess(self, test)
-        
+
         output, tc_elapsedtime, ts_elapsedtime = self._restore_output(test)
         self.result.append(
             (self.status, test, output, '', tc_elapsedtime, self.ts_loop)
@@ -595,7 +595,7 @@ class StressRunner(object):
 
             self.logger.info('=' * 50)
             for res in _result.result:
-                msg = "{stat} - {tc} - Iteration: {iter} - Elapsed: {elapsed}"\
+                msg = "{stat} - {tc} - Iteration: {iter} - Elapsed: {elapsed}" \
                     .format(stat=STATUS[res[0]], tc=res[1], iter=res[5], elapsed=res[4])
                 self.logger.info(msg)
                 # res[2].strip('\n') + res[3].strip('\n')
@@ -698,7 +698,7 @@ class StressRunner(object):
 
         status = ', '.join(status)
         if exec_count > 0:
-            self.passrate = str("%.0f%%" % (float(pass_count) / float(exec_count)*100))
+            self.passrate = str("%.0f%%" % (float(pass_count) / float(exec_count) * 100))
         else:
             self.passrate = str("%.0f%%" % (float(0)))
         self.summary = status + ", Passing rate: " + self.passrate
@@ -712,7 +712,7 @@ class StressRunner(object):
             'Summary': self.summary,
             'Location': '{0}({1})'.format(self.local_hostname, self.local_ip),
             'Report': self.report_path,
-            'Command': 'python '+' '.join(sys.argv),
+            'Command': 'python ' + ' '.join(sys.argv),
         }
 
         return attr
@@ -860,5 +860,33 @@ class StressRunner(object):
         return True
 
 
+##############################################################################
+# Facilities for running tests from the command line
+##############################################################################
+
+# Note: Reuse unittest.TestProgram to launch test. In the future we may
+# build our own launcher to support more specific command line
+# parameters like test title, CSS, etc.
+class TestProgram(unittest.TestProgram):
+    """
+    A variation of the unittest.TestProgram. Please refer to the base
+    class for command line parameters.
+    """
+
+    def runTests(self):
+        # Pick StressRunner as the default test runner.
+        # base class's testRunner parameter is not useful because it means
+        # we have to instantiate StressRunner before we know self.verbosity.
+        if self.testRunner is None:
+            self.testRunner = StressRunner()
+        unittest.TestProgram.runTests(self)
+
+
+main = TestProgram
+
+##############################################################################
+# Executing this module from the command line
+##############################################################################
+
 if __name__ == "__main__":
-    pass
+    main(module=None)
