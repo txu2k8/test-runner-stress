@@ -7,7 +7,6 @@
 @Email : tao.xu2008@outlook.com
 """
 
-import sys
 import unittest
 from stressrunner import StressRunner
 
