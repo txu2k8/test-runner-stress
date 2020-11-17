@@ -8,10 +8,10 @@
 """
 
 from .runner import *
-__all__ = ['StressRunner']
+__all__ = ['StressRunner', 'MailInfo']
 
 """
-StressRunner - A runner similar as TextTestRunner for stress test, support for html report.
+StressRunner - A stressrunner similar as TextTestRunner for stress test, support for html report.
 FYI: http://tungwaiyip.info/software/HTMLTestRunner.html
 ===============
 Based on unittest.

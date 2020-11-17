@@ -25,10 +25,10 @@ The simplest way to use this is to invoke its main method. E.g.
 For more customization options, instantiates a HTMLTestRunner object.
 StressRunner is a counterpart to unittest's TextTestRunner. E.g.
     # output to a file
-    runner = StressRunner.StressRunner(
+    stressrunner = StressRunner.StressRunner(
                 report_path='./report/',
-                title='My unit test',
-                description='This demonstrates the report output by StressRunner.'
+                test_title='My unit test',
+                desc='This demonstrates the report output by StressRunner.'
                 )
 """
 
@@ -45,8 +45,8 @@ import traceback
 from xml.sax import saxutils
 import unittest
 
-from libs.mail import SmtpServer, Mail
-from libs.stressrunner.lite import report
+from stressrunner.mail import send_mail
+from stressrunner.report import REPORT_TEMPLATE
 
 
 # =============================
@@ -95,26 +95,6 @@ class MailInfo(object):
         self.subject = subject
         self.content = content
         self.attachments = attachments or []
-
-
-def send_mail(mail_info):
-    """
-    Send mail
-    :param mail_info: object MailInfo()
-    :return:
-    """
-    try:
-        print('preparing mail...')
-        mail = Mail(mail_info.subject, mail_info.content, mail_info.m_from, mail_info.m_to)
-        print('preparing attachments...')
-        mail.attach(mail_info.attachments)
-
-        print('preparing SMTP server...')
-        smtp = SmtpServer(mail_info.host, mail_info.user, mail_info.password, mail_info.port, mail_info.tls)
-        print('sending mail to {0}...'.format(mail_info.m_to))
-        smtp.sendmail(mail)
-    except Exception as e:
-        raise Exception('Error in sending email. [Exception]%s' % e)
 
 
 def get_local_ip():
@@ -477,7 +457,7 @@ class _TestResult(unittest.TestResult):
 
 class StressRunner(object):
     """
-    stress runner
+    stress stressrunner
     """
 
     local_hostname = get_local_hostname()
@@ -500,7 +480,7 @@ class StressRunner(object):
                  teardown_fn=None,
                  ):
         """
-        Stress runner
+        Stress stressrunner
         Args:
             report_path: default ./report.html
             logger:
@@ -853,7 +833,7 @@ class StressRunner(object):
         attr = self._get_attributes_table_string(result)
         results = self._get_result_table_string(result)
         nodes = self._get_nodes_table_string(self.test_nodes)
-        output = report.REPORT_TEMPLATE % dict(
+        output = REPORT_TEMPLATE % dict(
             Title=self.title,
             Generator=__author__,
             Description=attr,

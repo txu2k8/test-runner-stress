@@ -45,10 +45,10 @@ def _find_packages():
 
 
 setup(
-    name='stress-runner',
+    name='stress-stressrunner',
     python_requires='>=3.4.0',
     version='1.0.1',
-    description="A runner similar as TextTestRunner for stress test, support for html report.",
+    description="A stressrunner similar as TextTestRunner for stress test, support for html report.",
     long_description=read_file('README.md'),
     long_description_content_type="text/markdown",
     author="tao.xu",
@@ -58,7 +58,7 @@ setup(
     install_requires=read_requirements('requirements.txt'),
     include_package_data=True,
     license="MIT",
-    keywords=['stress', 'runner', 'html', 'unittest'],
+    keywords=['stress', 'stressrunner', 'html', 'unittest'],
     classifiers=[
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
