@@ -6,7 +6,6 @@ coloredlogs==14.0
 docutils==0.16
 humanfriendly==8.2
 idna==2.10
-keyring==21.5.0
 packaging==20.4
 pkginfo==1.6.1
 Pygments==2.7.2
@@ -19,6 +18,5 @@ requests-toolbelt==0.9.1
 rfc3986==1.4.0
 six==1.15.0
 tqdm==4.52.0
-twine==3.2.0
 urllib3==1.26.2
 webencodings==0.5.1
