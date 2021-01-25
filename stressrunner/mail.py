@@ -47,7 +47,7 @@ class SmtpServer(object):
         self.smtp = smtplib.SMTP(host=host)
         self.host = host
         self.user = user
-        self.password = base64.b64decode(password).decode('UTF-8') if is_base64(password) else password
+        self.password = password  # base64.b64decode(password).decode('UTF-8') if is_base64(password) else
         self.is_gmail = False
         if self.host == 'smtp.gmail.com':
             self.is_gmail = True

@@ -502,6 +502,7 @@ class StressRunner(object):
     def send_mail(self, m_from, m_to, host, user, password, port, tls):
         if not m_to:
             return True
+        self.logger.info("> Send mail to {} ...".format(m_to))
 
         with open(self.report_html, 'rb') as f:
             content = f.read()
