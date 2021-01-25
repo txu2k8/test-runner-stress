@@ -56,7 +56,8 @@ WINDOWS = os.name == "nt"
 PY2 = sys.version_info[0] == 2
 # sys.setrecursionlimit(100000)
 
-DEFAULT_TESTER = __author__
+TESTER = __author__
+REPORT_TITLE = "Test Report"
 STATUS = {
     0: 'PASS',
     1: 'FAIL',
@@ -454,16 +455,28 @@ class StressRunner(object):
     separator1 = '=' * 70
     separator2 = '-' * 70
 
-    def __init__(self, report_html=None, logger=None, iteration=1, verbosity=2):
+    def __init__(self, report_html=None, logger=None, iteration=1, verbosity=2,
+                 tester=TESTER, test_version=None, description=None, report_title=REPORT_TITLE,
+                 test_env=None, test_nodes=None):
         """
         Stress runner
         Args:
             report_html: default ./report.html
             logger:
             iteration: the max test iteration
-            verbosity:
+            verbosity: 2: show All
+            :param tester:
+            :param test_version:
+            :param description:
+            :param report_title:
+            :param test_env:
+            :param test_nodes:
         """
 
+        if test_nodes is None:
+            test_nodes = []
+        if test_env is None:
+            test_env = {}
         self.report_html = report_html or self.default_report_html
         self.logger = logger or self.default_logger
         self.iteration = iteration
@@ -472,16 +485,15 @@ class StressRunner(object):
 
         # --------------- Info for display on report.html ---------------
         # test info
-        self.tester = __author__
-        self.test_desc = ''
-        self.test_version = ''
-        self.report_title = 'Test Report'
+        self.tester = tester
+        self.test_desc = description
+        self.test_version = test_version
+        self.report_title = report_title
         # test env info
-        self.test_env = {}  # dict with key:value
-        self.test_nodes = []  # dict list, item.keys: Name, Status, IPAddress, Roles, User, Password
-        # --------------- Info for display on report.html ---------------
+        self.test_env = test_env  # dict with key:value
+        self.test_nodes = test_nodes  # dict list, item.keys: Name, Status, IPAddress, Roles, User, Password
 
-        # test status
+        # --------------- test status ---------------
         self.start_time = datetime.now()
         self.stop_time = ''
         self.elapsedtime = ''
@@ -678,6 +690,8 @@ class StressRunner(object):
             'Report': self.report_html,
             'Command': 'python ' + ' '.join(sys.argv),
         }
+        if self.test_desc:
+            attr = dict(attr, **({'Description': self.test_desc}))
 
         return dict(attr, **self.test_env)
 

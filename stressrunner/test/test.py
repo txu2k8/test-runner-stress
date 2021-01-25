@@ -34,13 +34,9 @@ def teardown():
 if __name__ == '__main__':
     # unittest.main()
     suite = unittest.TestLoader().loadTestsFromTestCase(UnitTestCase)
-    runner = StressRunner(iteration=3)
-    runner.test_desc = 'stress unittest'
-    runner.test_version = '1.2.3'
-    runner.report_title = 'report-1.2.3'
-    runner.test_env = {
-        'sss': 1
-    }
+    runner = StressRunner(iteration=3,
+                          description='stress unittest', test_version='1.2.3',
+                          report_title='report-1.2.3', test_env={'sss': 123})
     runner.run(suite)
     teardown()
     # runner.send_mail()
