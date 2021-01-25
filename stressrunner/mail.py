@@ -146,6 +146,7 @@ def send_mail(subject, content, m_from, m_to, host, user,
         smtp = SmtpServer(host, user, password, port, tls)
         print('sending mail to {0}...'.format(m_to))
         smtp.sendmail(mail)
+        print(">> Send mail done.")
     except Exception as e:
         raise Exception('Error in sending email. [Exception]%s' % e)
 

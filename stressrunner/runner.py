@@ -23,7 +23,7 @@ The simplest way to use this is to invoke its main method. E.g.
 For more customization options, instantiates a StressRunner object.
 StressRunner is a counterpart to unittest's TextTestRunner. E.g.
     # output to a file
-    runner = StressRunner.StressRunner(
+    runner = StressRunner(
         report_path='./report/',
         test_title='My unit test',
         desc='This demonstrates the report output by StressRunner.'
@@ -43,7 +43,7 @@ import traceback
 from xml.sax import saxutils
 import unittest
 
-from stressrunner.mail import send_mail
+from stressrunner import mail
 from stressrunner.report import REPORT_TEMPLATE
 
 # =============================
@@ -54,20 +54,8 @@ __version__ = "1.5.1"
 POSIX = os.name == "posix"
 WINDOWS = os.name == "nt"
 PY2 = sys.version_info[0] == 2
-sys.setrecursionlimit(100000)
-# Python2 basestring,  --> (str, unicode)
-string_types = basestring if PY2 else str, bytes
+# sys.setrecursionlimit(100000)
 
-DEFAULT_LOGGER_FORMATE = '%(asctime)s %(name)s %(levelname)s: %(message)s'
-DEFAULT_LOGGER = logging.getLogger('StressRunner')
-coloredlogs.install(logger=DEFAULT_LOGGER, level=logging.DEBUG,
-                    fmt=DEFAULT_LOGGER_FORMATE)
-
-# default report_path
-CUR_DIR = os.getcwd()
-DEFAULT_REPORT_PATH = os.path.join(CUR_DIR, 'report.html')
-DEFAULT_TITLE = 'Test Report'
-DEFAULT_DESCRIPTION = ''
 DEFAULT_TESTER = __author__
 STATUS = {
     0: 'PASS',
@@ -136,6 +124,8 @@ def escape(value):
         return value
 
     # encode strings to utf-8
+    # Python2 basestring,  --> (str, unicode)
+    string_types = basestring if PY2 else str, bytes
     if isinstance(value, string_types):
         if PY2 and isinstance(value, unicode):
             return value.encode("utf-8")
@@ -206,66 +196,51 @@ class _TestResult(unittest.TestResult):
     unittest._TextTestResult.
     """
 
-    p_msg = "[ PASS ] {0} -- iteration: {1} --Elapsed Time: {2}"
-    e_msg = "[ERROR ] {0} -- iteration: {1} --Elapsed Time: {2}"
-    f_msg = "[FAILED] {0} -- iteration: {1} --Elapsed Time: {2}"
-    s_msg = "[ SKIP ] {0} -- iteration: {1} --Elapsed Time: {2}"
+    msg = "[{0:^6}] {1} --Loop: {2} --ElapsedTime: {3}"
 
-    def __init__(self, logger=DEFAULT_LOGGER, verbosity=2, tc_loop_limit=1,
-                 tc_elapsed_limit=None, save_last_result=False):
+    def __init__(self, logger, descriptions=None, verbosity=2, fail_exit=True):
         """
         _TestResult inherit from unittest TestResult
         :param logger: default is logging.get_logger()
         :param verbosity: 1-dots, 2-showStatus, 3-showAll
-        :param tc_loop_limit: the max loop running for each test case
-        :param tc_elapsed_limit:None means no limit
-        :param save_last_result: just save the last loop result
+        :param fail_exit: exit all test if any tc failed/error/canceled
         """
-
         super(_TestResult, self).__init__()
-        # TestResult.__init__(self)
         self.logger = logger
+        self.descriptions = descriptions
         self.verbosity = verbosity
-        self.tc_loop_limit = tc_loop_limit
-        self.tc_elapsed_limit = tc_elapsed_limit
-        self.save_last_result = save_last_result
+        self.fail_exit = fail_exit
+        self.tc_loop_limit = 1
 
         self.showAll = verbosity >= 3
         self.showStatus = verbosity == 2
         self.dots = verbosity <= 1
+
         self.stdout0 = None
         self.stderr0 = None
-
         self._stdout_buffer = None
         self._stderr_buffer = None
         self._original_stdout = sys.stdout
         self._original_stderr = sys.stderr
+        self.outputBuffer = ''
+
+        # extend more results
+        self.successes = []
+        self.canceled = []
+        self.all = []  # (status, test, output, stack_trace, elapsed_time, loop)
         self.success_count = 0
         self.failure_count = 0
         self.error_count = 0
-        self.skipped_count = 0  # add skipped_count
-        self.canceled_count = 0  # add canceled_count
+        self.skipped_count = 0
+        self.canceled_count = 0
 
-        '''
-        result is a list of tuple
-        (
-          result code (0: success; 1: fail; 2: error),
-          TestCase object,
-          Test output (byte string),
-          stack trace,
-        )
-        '''
-        self.status = 0
-        self.result = []
-        self.outputBuffer = ''
-
+        self.loop = 1
         self.tc_loop = 0
-        self.ts_loop = 1
-        self.tc_start_time = datetime.now()
+        self.tc_start_time = datetime.now()  # test case start time
         self.ts_start_time = datetime.now()  # test suite start time
 
     @staticmethod
-    def _get_description(test):
+    def get_description(test):
         return test.shortDescription() or str(test)
 
     def _setup_output(self):
@@ -287,8 +262,8 @@ class _TestResult(unittest.TestResult):
         Safe to call multiple times.
         """
         # remove the running record
-        if len(self.result) > 0:
-            self.result.pop(-1)
+        if len(self.all) > 0:
+            self.all.pop(-1)
 
         output = sys.stdout.fp.getvalue().decode('UTF-8')
         error = sys.stderr.fp.getvalue().decode('UTF-8')
@@ -320,9 +295,8 @@ class _TestResult(unittest.TestResult):
         return output_info, tc_elapsedtime, ts_elapsedtime
 
     def startTest(self, test):
-        self.logger.info("[START ] {0} -- iteration: {1}".format(
-            str(test), self.ts_loop))
-        self.result.append((4, test, '', '', '', self.ts_loop))
+        self.logger.info("[START ] {0} -- iteration: {1}".format(str(test), self.loop))
+        self.all.append((4, test, '', '', '', self.loop))
         self.tc_start_time = datetime.now()
         unittest.TestResult.startTest(self, test)
         self._setup_output()
@@ -343,21 +317,20 @@ class _TestResult(unittest.TestResult):
         # self.complete_output(test)
 
     def addSuccess(self, test):
-        self.status = 0
+        sn = 0
+        status = STATUS[sn]
         self.tc_loop += 1
         self.success_count += 1
+        self.successes.append((test, ''))
         unittest.TestResult.addSuccess(self, test)
 
         output, tc_elapsedtime, ts_elapsedtime = self._restore_output(test)
-        self.result.append(
-            (self.status, test, output, '', tc_elapsedtime, self.ts_loop)
-        )
+        self.all.append((sn, test, output, '', tc_elapsedtime, self.loop))
         if self.showAll:
-            self.logger.info(
-                self.p_msg.format(str(test), self.ts_loop, tc_elapsedtime))
+            self.logger.info(self.msg.format(status, str(test), self.loop, tc_elapsedtime))
             self.logger.info("Total Elapsedtime: {0}".format(ts_elapsedtime))
         elif self.showStatus:
-            self.logger.info(STATUS[self.status])
+            self.logger.info(status)
         elif self.dots:
             self.logger.info("\n.")
         else:
@@ -366,17 +339,11 @@ class _TestResult(unittest.TestResult):
         # calculate retry or not
         if (self.tc_loop_limit == 0) or (self.tc_loop_limit > self.tc_loop):
             retry_flag = True
-        elif self.tc_elapsed_limit:
-            retry_flag = True
-            self.tc_elapsed_limit -= tc_elapsedtime
         else:
             retry_flag = False
 
         # recursive retry test
         if retry_flag:
-            if self.save_last_result:
-                self.result.pop(-1)
-                self.success_count -= 1
             test = copy.copy(test)
             self.tc_start_time = datetime.now()
             test(self)
@@ -384,67 +351,91 @@ class _TestResult(unittest.TestResult):
             self.tc_loop = 0  # update for next test case loop=0
 
     def addError(self, test, err):
-        self.status = 2
-        self.error_count += 1
+        sn = 2
+        status = STATUS[sn]
+        self.failure_count += 1
         unittest.TestResult.addError(self, test, err)
         _, str_e = self.errors[-1]
         output, tc_elapsedtime, ts_elapsedtime = self._restore_output(test)
-        self.result.append(
-            (self.status, test, output, str_e, tc_elapsedtime, self.ts_loop)
-        )
+        self.all.append((sn, test, output, str_e, tc_elapsedtime, self.loop))
         if self.showAll:
-            self.logger.critical(
-                self.e_msg.format(str(test), self.ts_loop, tc_elapsedtime))
+            self.logger.critical(self.msg.format(status, str(test), self.loop, tc_elapsedtime))
             self.logger.info("Total Elapsedtime: {0}".format(ts_elapsedtime))
         elif self.showStatus:
-            self.logger.critical(STATUS[self.status])
+            self.logger.critical(status)
         else:
             self.logger.critical("\nE")
         self.tc_loop = 0
-        # self.logger.info("Stop test while test meet ERROR ...")  TODO
+        if self.fail_exit:
+            self.logger.warning("Stop all test because test {} meet Error ...".format(test))
+            self.stop()
 
     def addFailure(self, test, err):
-        self.status = 1
+        sn = 1
+        status = STATUS[sn]
         self.failure_count += 1
         unittest.TestResult.addFailure(self, test, err)
         _, str_e = self.failures[-1]
         output, tc_elapsedtime, ts_elapsedtime = self._restore_output(test)
-        self.result.append(
-            (self.status, test, output, str_e, tc_elapsedtime, self.ts_loop)
-        )
+        self.all.append((sn, test, output, str_e, tc_elapsedtime, self.loop))
         if self.showAll:
-            self.logger.critical(
-                self.e_msg.format(str(test), self.ts_loop, tc_elapsedtime))
+            self.logger.critical(self.msg.format(status, str(test), self.loop, tc_elapsedtime))
             self.logger.info("Total Elapsedtime: {0}".format(ts_elapsedtime))
         elif self.showStatus:
-            self.logger.critical(STATUS[self.status])
+            self.logger.critical(status)
         else:
             self.logger.critical("\nF")
         self.tc_loop = 0
-        # self.logger.info("Stop test while test meet FAILED ...")  TODO
+        if self.fail_exit:
+            self.logger.warning("Stop all test because test {} FAILED ...".format(test))
+            self.stop()
 
     def addSkip(self, test, reason):
-        self.status = 3
+        sn = 3
+        status = STATUS[3]
         self.skipped_count += 1
         unittest.TestResult.addSkip(self, test, reason)
         output, tc_elapsedtime, ts_elapsedtime = self._restore_output(test)
-        self.result.append(
-            (self.status, test, output, reason, tc_elapsedtime, self.ts_loop)
-        )
+        self.all.append((sn, test, output, reason, tc_elapsedtime, self.loop))
         if self.showAll:
-            self.logger.warning(
-                self.e_msg.format(str(test), self.ts_loop, tc_elapsedtime))
+            self.logger.warning(self.msg.format(status, str(test), self.loop, tc_elapsedtime))
             self.logger.info("Total Elapsedtime: {0}".format(ts_elapsedtime))
         elif self.showStatus:
-            self.logger.warning(STATUS[self.status])
+            self.logger.warning(status)
         else:
             self.logger.warning("\nS")
         self.tc_loop = 0
 
+    def add_canceled(self):
+        sn = 4
+        status = STATUS[sn]
+        self.canceled_count += 1
+        if len(self.all) > 0:
+            test = self.all[-1][1]
+        else:
+            test = ''
+        self.all.pop(-1)
+        self.canceled.append((test, 'Canceled'))
+
+        output, tc_elapsedtime, ts_elapsedtime = self._restore_output(test)
+        self.all.append((sn, test, output, '', tc_elapsedtime, self.loop))
+        if self.showAll:
+            self.logger.info(self.msg.format(status, str(test), self.loop, tc_elapsedtime))
+            self.logger.info("Total Elapsedtime: {0}".format(ts_elapsedtime))
+        elif self.showStatus:
+            self.logger.info(status)
+        elif self.dots:
+            self.logger.info("\n.")
+        else:
+            pass
+        self.tc_loop = 0
+        if self.fail_exit:
+            self.logger.warning("Stop all test because test {} CANCELED ...".format(test))
+            self.stop()
+
     def print_error_list(self, flavour, errors):
         for test, err in errors:
-            self.logger.error("{0}: {1}\n{2}".format(
-                flavour, self._get_description(test), err))
+            self.logger.error("{0}: {1}\n{2}".format(flavour, self.get_description(test), err))
 
     def print_errors(self):
         if self.dots or self.showAll:
@@ -460,62 +451,35 @@ class StressRunner(object):
 
     local_hostname = get_local_hostname()
     local_ip = get_local_ip()
+    separator1 = '=' * 70
+    separator2 = '-' * 70
 
-    def __init__(self,
-                 report_path=DEFAULT_REPORT_PATH,
-                 logger=DEFAULT_LOGGER,
-                 iteration=1,
-                 verbosity=2,
-                 tc_elapsed_limit=None,
-                 save_last_result=False,
-                 desc=DEFAULT_DESCRIPTION,
-                 tester=DEFAULT_TESTER,
-                 test_title=DEFAULT_TITLE,
-                 test_version='',
-                 test_env=None,
-                 test_nodes=None,
-                 mail_info=MailInfo(),
-                 teardown_fn=None,
-                 ):
+    def __init__(self, report_html=None, logger=None, iteration=1, verbosity=2):
         """
-        Stress stressrunner
+        Stress runner
         Args:
-            report_path: default ./report.html
+            report_html: default ./report.html
             logger:
             iteration: the max test iteration
             verbosity:
-            tc_elapsed_limit: the test case run time limit
-            save_last_result: Save only the last iteration results if true
-            desc:
-            tester:
-            test_title:
-            test_version:
-            test_env: test env k-v info
-            test_nodes: test env nodes info
-            mail_info: info for send emails
-            teardown_fn: The Fn() run after test done
         """
 
-        if test_env is None:
-            test_env = []
-        if not isinstance(test_env, list):
-            test_env = [test_env]
-
-        self.report_path = report_path if report_path.endswith('.html') else report_path + '.html'
-        self.logger = logger
+        self.report_html = report_html or self.default_report_html
+        self.logger = logger or self.default_logger
         self.iteration = iteration
         self.verbosity = verbosity
-        self.tc_elapsed_limit = tc_elapsed_limit
-        self.save_last_result = save_last_result
+        self.save_last_result = True
 
-        self.desc = desc
-        self.tester = tester
-        self.title = test_title + '-' + test_version if test_version else test_title
-        self.test_version = test_version
-        self.test_env = test_env
-        self.test_nodes = test_nodes
-        self.mail_info = mail_info
-        self.teardown_fn = teardown_fn
+        # --------------- Info for display on report.html ---------------
+        # test info
+        self.tester = __author__
+        self.test_desc = ''
+        self.test_version = ''
+        self.report_title = 'Test Report'
+        # test env info
+        self.test_env = {}  # dict with key:value
+        self.test_nodes = []  # dict list, item.keys: Name, Status, IPAddress, Roles, User, Password
+        # --------------- Info for display on report.html ---------------
 
         # test status
         self.start_time = datetime.now()
@@ -524,18 +488,42 @@ class StressRunner(object):
         self.passrate = ''
         self.summary = ''  # eg: "ALL 1, PASS 1, Passing rate: 100%"
 
+    @property
+    def default_logger(self):
+        log_format = '%(asctime)s %(name)s %(levelname)s: %(message)s'
+        sr_logger = logging.getLogger('StressRunner')
+        coloredlogs.install(logger=sr_logger, level=logging.DEBUG, fmt=log_format)
+        return sr_logger
+
+    @property
+    def default_report_html(self):
+        return os.path.join(os.getcwd(), 'report.html')
+
+    def send_mail(self, m_from, m_to, host, user, password, port, tls):
+        if not m_to:
+            return True
+
+        with open(self.report_html, 'rb') as f:
+            content = f.read()
+
+        attachments = []
+        log_path = self.report_html.replace('.html', '.log')
+        if os.path.getsize(log_path) < 2048 * 1000:
+            attachments.append(log_path)
+        # attachments.append(self.report_path)
+
+        mail.send_mail(self.report_title, content, m_from, m_to, host, user, password, port, tls, attachments)
+        return True
+
     def run(self, test):
         """
         Run the given test case or test suite
         :param test: unittest.testSuite
         :return:
         """
-        tc_loop_limit = 1  # each case run only 1 loop in one iteration
-        _result = _TestResult(self.logger, self.verbosity, tc_loop_limit,
-                              self.tc_elapsed_limit, self.save_last_result)
+        _result = _TestResult(self.logger, self.verbosity)
         test_status = 'ERROR'
         retry_flag = True
-        # result.ts_loop = 1
         try:
             while retry_flag:
                 # retry test suite by iteration
@@ -545,17 +533,17 @@ class StressRunner(object):
                     self.logger.info(_test)
 
                 running_test(_result)
-                _result.ts_loop += 1
+                _result.loop += 1
                 fail_count = _result.failure_count + _result.error_count
                 test_status = 'FAILED' if fail_count > 0 else 'PASSED'
+                del running_test
 
                 if fail_count > 0:
                     retry_flag = False
-                elif self.iteration == 0 or self.iteration >= _result.ts_loop:
+                elif self.iteration == 0 or self.iteration >= _result.loop:
                     retry_flag = True
                 else:
                     retry_flag = False
-
         except KeyboardInterrupt:
             self.logger.info("Script stoped by user --> ^C")
             if (_result.failure_count + _result.error_count) > 0:
@@ -564,86 +552,34 @@ class StressRunner(object):
                 test_status = 'CANCELED'
             else:
                 test_status = 'PASSED'
-            _result.canceled_count += 1
-            cancled_time = str(datetime.now() - _result.tc_start_time).split('.')[0]
-            n, t, o, e, d, lp = _result.result[-1]
-            if n == 4:
-                _result.result.pop(-1)
-                _result.result.append((n, t, o, e, cancled_time, lp))
+            _result.add_canceled()
         except Exception as e:
             self.logger.error(e)
             self.logger.error('{err}'.format(err=traceback.format_exc()))
             failed_time = str(datetime.now() - _result.tc_start_time).split('.')[0]
-            n, t, o, e, d, lp = _result.result[-1]
-            if n == 4:
-                _result.result.pop(-1)
-                _result.result.append((2, t, o, e, failed_time, lp))
+            sn, t, o, e, d, lp = _result.all[-1]
+            if sn == 4:
+                _result.all.pop(-1)
+                _result.all.append((2, t, o, e, failed_time, lp))
         finally:
             self.logger.info(_result)
             if _result.testsRun < 1:
                 return _result
             self.stop_time = datetime.now()
             self.elapsedtime = str(self.stop_time - self.start_time).split('.')[0]
-            self.title = test_status + ": " + self.title
+            self.report_title = test_status + ": " + self.report_title
             self.generate_report(_result)
 
-            # self.logger.info('=' * 50)
-            # self.logger.info("Errors & Failures:")
-            # _result.printErrors()
-
-            self.logger.info('=' * 50)
-            for res in _result.result:
-                msg = "{stat} - {tc} - Iteration: {iter} - Elapsed: {elapsed}" \
-                    .format(stat=STATUS[res[0]], tc=res[1], iter=res[5], elapsed=res[4])
-                self.logger.info(msg)
-                # res[2].strip('\n') + res[3].strip('\n')
-                err_failure = res[3].strip('\n')
-                if err_failure:
-                    self.logger.error(err_failure)
-            if not _result.result:
+            if _result.all:
+                self._print_result(_result)
+            else:
                 for _test in test._tests:
                     self.logger.info(_test)
-
-            total_count = sum([
-                _result.success_count,
-                _result.failure_count,
-                _result.error_count,
-                _result.skipped_count,
-                _result.canceled_count])
-            self.logger.info("Pass: {0}".format(_result.success_count))
-            self.logger.info("Fail: {0}".format(_result.failure_count))
-            self.logger.info("Error: {0}".format(_result.error_count))
-            self.logger.info("Skipped: {0}".format(_result.skipped_count))
-            self.logger.info("Canceled: {0}".format(_result.canceled_count))
-            self.logger.info("Total: {0}".format(total_count))
-            self.logger.info('Time Elapsed: {0}'.format(self.elapsedtime))
-            self.logger.info('Report Path: {0}'.format(self.report_path))
-            self.logger.info('Test Location: {0}({1})'.format(
-                self.local_hostname, self.local_ip))
-            self.logger.info('=' * 50)
-
-            # send email
-            if self.mail_info.m_to:
-                self.mail_info.subject = self.title
-                with open(self.report_path, 'rb') as f:
-                    self.mail_info.content = f.read()
-                log_path = self.report_path.replace('.html', '.log')
-                if os.path.getsize(log_path) < 2048 * 1000:
-                    self.mail_info.attachments.append(log_path)
-                # self.mail_info.attachments.append(self.report_path)
-                send_mail(self.mail_info)
-                print(">> Send mail done.")
-
-            # -- extend operations here -----------------------------------
-            # eg: write test result to mysql
-            # eg: tar and backup test logs
-            if self.teardown_fn:
-                self.teardown_fn()
 
             return _result, test_status
 
     @staticmethod
-    def sort_result(result_list):
+    def _sort_result(result_list):
         """
         unittest does not seems to run in any particular order.
         Here at least we want to group them together by class.
@@ -662,6 +598,35 @@ class StressRunner(object):
             rmap[cls].append((n, t, o, e, d, l))
         r = [(cls, rmap[cls]) for cls in classes]
         return r
+
+    def _print_result(self, result):
+        self.logger.info(self.separator1)
+        # result.print_errors()
+        for res in result.all:
+            msg = "{stat} - {tc} - Iteration: {iter} - Elapsed: {elapsed}" \
+                .format(stat=STATUS[res[0]], tc=res[1], iter=res[5], elapsed=res[4])
+            self.logger.info(msg)
+            err_failure = res[3].strip('\n')
+            if err_failure:
+                self.logger.error(err_failure)
+        self.logger.info(self.separator2)
+        total_count = sum([
+            result.success_count,
+            result.failure_count,
+            result.error_count,
+            result.skipped_count,
+            result.canceled_count])
+        self.logger.info("Pass: {0}".format(result.success_count))
+        self.logger.info("Fail: {0}".format(result.failure_count))
+        self.logger.info("Error: {0}".format(result.error_count))
+        self.logger.info("Skipped: {0}".format(result.skipped_count))
+        self.logger.info("Canceled: {0}".format(result.canceled_count))
+        self.logger.info("Total: {0}".format(total_count))
+        self.logger.info('Time Elapsed: {0}'.format(self.elapsedtime))
+        self.logger.info('Report Path: {0}'.format(self.report_html))
+        self.logger.info('Test Location: {0}({1})'.format(self.local_hostname, self.local_ip))
+        self.logger.info(self.separator1)
+        return True
 
     def _get_attributes(self, result):
         """
@@ -709,11 +674,11 @@ class StressRunner(object):
             'Elapsed': self.elapsedtime,
             'Summary': self.summary,
             'Location': '{0}({1})'.format(self.local_hostname, self.local_ip),
-            'Report': self.report_path,
+            'Report': self.report_html,
             'Command': 'python ' + ' '.join(sys.argv),
         }
 
-        return attr
+        return dict(attr, **self.test_env)
 
     def _get_attributes_table_string(self, result):
         """
@@ -754,7 +719,7 @@ class StressRunner(object):
             "IPAddress": self.local_ip,
             "Roles": "Test Host",
             "User": "root",
-            "Password": "password",
+            "Password": "********",
         })
         html_template = """
         <tr id='node_%d' class='nodes'>
@@ -774,23 +739,23 @@ class StressRunner(object):
 
     def _get_result_table_string(self, result):
         html_template = """
-        <tr id='result_%d' class='result'>
-            <td colspan='1' align='left' class='%s'>%s</td>
-            <td colspan='1' align='center' class='%s'>%s</td>
+        <tr id='result_%d' class='%s'>
+            <td colspan='1' align='left'>%s</td>
+            <td colspan='1' align='center'>%s</td>
             <td colspan='1' align='center'>%s</td>
             <td colspan='1' align='center'>Loop: %d</td>
         </tr>
         """
 
         msg_template = """
-        <tr id='msg_%d' class='output'>
-            <td colspan='1' align='left' class='%s'>Message</td>
-            <td colspan='3' align='left' class='%s'>%s</td>
+        <tr id='msg_%d' class='%s'>
+            <td colspan='1' align='left'>Message</td>
+            <td colspan='3' align='left'><pre>%s</pre></td>
         </tr>
         """
 
         tr = ""
-        sorted_result = self.sort_result(result.result)
+        sorted_result = self._sort_result(result.all)
         for cid, (cls, cls_results) in enumerate(sorted_result):
             np = nf = ne = ns = 0
             for n, t, o, e, d, l in cls_results:
@@ -816,9 +781,9 @@ class StressRunner(object):
                 else:
                     style = 'none'
 
-                tr += html_template % (cid, style, desc, style, STATUS[n], d, l)
+                tr += html_template % (cid, style, desc, STATUS[n], d, l)
                 if output:
-                    tr += msg_template % (cid, style, style, output)
+                    tr += msg_template % (cid, style, output)
         return tr
 
     def generate_report(self, result):
@@ -832,7 +797,7 @@ class StressRunner(object):
         results = self._get_result_table_string(result)
         nodes = self._get_nodes_table_string(self.test_nodes)
         output = REPORT_TEMPLATE % dict(
-            Title=self.title,
+            Title=self.report_title,
             Generator=__author__,
             Description=attr,
             Nodes=nodes,
@@ -846,45 +811,36 @@ class StressRunner(object):
             Results=results
         )
 
-        report_path_dir = os.path.dirname(self.report_path)
+        report_path_dir = os.path.dirname(self.report_html)
         if not os.path.isdir(report_path_dir):
             try:
                 os.makedirs(report_path_dir)
             except OSError as e:
                 raise Exception(e)
-        with open(self.report_path, 'wb') as f:
+        with open(self.report_html, 'wb') as f:
             f.write(output.encode('UTF-8'))
 
         return True
 
 
-##############################################################################
 # Facilities for running tests from the command line
-##############################################################################
-
-# Note: Reuse unittest.TestProgram to launch test. In the future we may
-# build our own launcher to support more specific command line
-# parameters like test title, CSS, etc.
-class TestProgram(unittest.TestProgram):
+class SRTestProgram(unittest.TestProgram):
     """
     A variation of the unittest.TestProgram. Please refer to the base
     class for command line parameters.
+
+    Pick StressRunner as the default test runner.
+    base class's testRunner parameter is not useful because it means
+    we have to instantiate StressRunner before we know self.verbosity.
     """
+    def __init__(self):
+        super(SRTestProgram, self).__init__(module=None)
+        self.testRunner = StressRunner()
 
     def runTests(self):
-        # Pick StressRunner as the default test runner.
-        # base class's testRunner parameter is not useful because it means
-        # we have to instantiate StressRunner before we know self.verbosity.
-        if self.testRunner is None:
-            self.testRunner = StressRunner()
         unittest.TestProgram.runTests(self)
 
 
-main = TestProgram
-
-##############################################################################
 # Executing this module from the command line
-##############################################################################
-
 if __name__ == "__main__":
-    main(module=None)
+    SRTestProgram()

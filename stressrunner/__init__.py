@@ -8,7 +8,9 @@
 """
 
 from .runner import *
-__all__ = ['StressRunner', 'MailInfo']
+from .mail import *
+
+__all__ = ['StressRunner', 'send_mail']
 
 """
 StressRunner - A stressrunner similar as TextTestRunner for stress test, support for html report.

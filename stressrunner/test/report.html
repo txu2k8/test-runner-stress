@@ -5,7 +5,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 
 <head>
-    <title>PASSED: Test Report</title>
+    <title>FAILED: report-1.2.3</title>
     <meta name="generator" content="tao.xu">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <style type="text/css" media="screen">
@@ -168,7 +168,7 @@
 <body>
     <!-- Title -->
     <div class='heading'>
-        <h1> PASSED: Test Report </h1>
+        <h1> FAILED: report-1.2.3 </h1>
     </div>
 
     <!-- Test Env Information: -->
@@ -181,14 +181,19 @@
             <td colspan='1' align='left'>tao.xu</td>
         </tr>
         
+        <tr id='attr_2' class='attr'>
+            <td colspan='1' align='left' width='8%'>Version</td>
+            <td colspan='1' align='left'>1.2.3</td>
+        </tr>
+        
         <tr id='attr_3' class='attr'>
             <td colspan='1' align='left' width='8%'>Start</td>
-            <td colspan='1' align='left'>2020-11-17 11:25:18</td>
+            <td colspan='1' align='left'>2021-01-25 14:10:38</td>
         </tr>
         
         <tr id='attr_4' class='attr'>
             <td colspan='1' align='left' width='8%'>End</td>
-            <td colspan='1' align='left'>2020-11-17 11:25:18</td>
+            <td colspan='1' align='left'>2021-01-25 14:10:38</td>
         </tr>
         
         <tr id='attr_5' class='attr'>
@@ -198,12 +203,12 @@
         
         <tr id='attr_6' class='attr'>
             <td colspan='1' align='left' width='8%'>Summary</td>
-            <td colspan='1' align='left'>ALL 1, Pass 1, Passing rate: 100%</td>
+            <td colspan='1' align='left'>ALL 2, Pass 1, Failure 1, Passing rate: 50%</td>
         </tr>
         
         <tr id='attr_7' class='attr'>
             <td colspan='1' align='left' width='8%'>Location</td>
-            <td colspan='1' align='left'>LAPTOP-9M6BOS48(10.116.0.33)</td>
+            <td colspan='1' align='left'>LAPTOP-9M6BOS48(10.116.4.8)</td>
         </tr>
         
         <tr id='attr_8' class='attr'>
@@ -214,6 +219,11 @@
         <tr id='attr_9' class='attr'>
             <td colspan='1' align='left' width='8%'>Command</td>
             <td colspan='1' align='left'>python C:/workspace/stress-runner/stressrunner/test/test.py</td>
+        </tr>
+        
+        <tr id='attr_10' class='attr'>
+            <td colspan='1' align='left' width='8%'>sss</td>
+            <td colspan='1' align='left'>1</td>
         </tr>
         
     </table>
@@ -243,10 +253,10 @@
         <tr id='node_0' class='nodes'>
             <td colspan='1' align='center''>LAPTOP-9M6BOS48</td>
             <td colspan='1' align='center''>Ready</td>
-            <td colspan='1' align='center''>10.116.0.33</td>
+            <td colspan='1' align='center''>10.116.4.8</td>
             <td colspan='1' align='center''>Test Host</td>
             <td colspan='1' align='center''>root</td>
-            <td colspan='1' align='center''>password</td>
+            <td colspan='1' align='center''>********</td>
         </tr>
         
     </table>
@@ -274,13 +284,13 @@
         </tr>
         <!-- summary_row -->
         <tr id='result_tabl' class="text-center success">
+            <td>2</td>
             <td>1</td>
             <td>1</td>
             <td>0</td>
             <td>0</td>
             <td>0</td>
-            <td>0</td>
-            <td>100%</td>
+            <td>50%</td>
         </tr>
     </table>
     </br>
@@ -304,11 +314,27 @@
         </tr>
         <!-- test case list -->
         
-        <tr id='result_0' class='result'>
-            <td colspan='1' align='left' class='passCase'>test_1</td>
-            <td colspan='1' align='center' class='passCase'>PASS</td>
+        <tr id='result_0' class='passCase'>
+            <td colspan='1' align='left'>test_1</td>
+            <td colspan='1' align='center'>PASS</td>
             <td colspan='1' align='center'>0:00:00</td>
             <td colspan='1' align='center'>Loop: 1</td>
+        </tr>
+        
+        <tr id='result_0' class='failCase'>
+            <td colspan='1' align='left'>test_2</td>
+            <td colspan='1' align='center'>FAIL</td>
+            <td colspan='1' align='center'>0:00:00</td>
+            <td colspan='1' align='center'>Loop: 1</td>
+        </tr>
+        
+        <tr id='msg_0' class='failCase'>
+            <td colspan='1' align='left'>Message</td>
+            <td colspan='3' align='left'><pre>test_2 (__main__.UnitTestCase):Traceback (most recent call last):
+  File "C:/workspace/stress-runner/stressrunner/test/test.py", line 22, in test_2
+    self.assertEqual(1, random.choice(range(3)))
+AssertionError: 1 != 0
+</pre></td>
         </tr>
         
     </table>
