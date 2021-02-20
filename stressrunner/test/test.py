@@ -17,7 +17,7 @@ class UnitTestCase(unittest.TestCase):
         self.assertTrue('1')
         print("---- test1 test1 test1 test1 test1 ...")
 
-    def test_2(self):
+    def atest_2(self):
         import random
         self.assertEqual(1, random.choice(range(3)))
         print("---- test2 test2 test2 test2 test2 ...")

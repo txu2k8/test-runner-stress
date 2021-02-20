@@ -36,11 +36,13 @@ import copy
 import re
 import os
 import sys
+import time
 from datetime import date, datetime
 import io
 import socket
 import traceback
 from xml.sax import saxutils
+from xml.dom import minidom
 import unittest
 
 from stressrunner import mail
@@ -455,7 +457,7 @@ class StressRunner(object):
     separator1 = '=' * 70
     separator2 = '-' * 70
 
-    def __init__(self, report_html=None, logger=None, iteration=1, verbosity=2,
+    def __init__(self, report_html=None, result_xml=None, logger=None, iteration=1, verbosity=2,
                  tester=TESTER, test_version=None, description=None, report_title=REPORT_TITLE,
                  test_env=None, test_nodes=None):
         """
@@ -478,6 +480,7 @@ class StressRunner(object):
         if test_env is None:
             test_env = {}
         self.report_html = report_html or self.default_report_html
+        self.result_xml = result_xml or self.default_result_xml
         self.logger = logger or self.default_logger
         self.iteration = iteration
         self.verbosity = verbosity
@@ -510,6 +513,10 @@ class StressRunner(object):
     @property
     def default_report_html(self):
         return os.path.join(os.getcwd(), 'report.html')
+
+    @property
+    def default_result_xml(self):
+        return os.path.join(os.getcwd(), 'result.xml')
 
     def send_mail(self, m_from, m_to, host, user, password, port, tls):
         if not m_to:
@@ -582,6 +589,7 @@ class StressRunner(object):
             self.elapsedtime = str(self.stop_time - self.start_time).split('.')[0]
             self.report_title = test_status + ": " + self.report_title
             self.generate_report(_result)
+            self.generate_xml(_result)
 
             if _result.all:
                 self._print_result(_result)
@@ -636,7 +644,8 @@ class StressRunner(object):
         self.logger.info("Canceled: {0}".format(result.canceled_count))
         self.logger.info("Total: {0}".format(total_count))
         self.logger.info('Time Elapsed: {0}'.format(self.elapsedtime))
-        self.logger.info('Report Path: {0}'.format(self.report_html))
+        self.logger.info('JunitXml Path: {0}'.format(self.result_xml))
+        self.logger.info('ReportHtml Path: {0}'.format(self.report_html))
         self.logger.info('Test Location: {0}({1})'.format(self.local_hostname, self.local_ip))
         self.logger.info(self.separator1)
         return True
@@ -834,6 +843,45 @@ class StressRunner(object):
                 raise Exception(e)
         with open(self.report_html, 'wb') as f:
             f.write(output.encode('UTF-8'))
+
+        return True
+
+    def generate_xml(self, result):
+        total_count = sum([
+            result.success_count,
+            result.failure_count,
+            result.error_count,
+            result.skipped_count,
+            result.canceled_count])
+        impl = minidom.getDOMImplementation()
+        doc = impl.createDocument(None, 'testsuites', None)
+        rootElement = doc.documentElement
+        # rootElement = doc.createElement('testsuites')
+        ts_element = doc.createElement('testsuite')
+        ts_element.setAttribute('name', 'pytest')
+        ts_element.setAttribute('errors', str(result.error_count))
+        ts_element.setAttribute('failures', str(result.failure_count))
+        ts_element.setAttribute('skipped', str(result.skipped_count))
+        ts_element.setAttribute('success', str(result.success_count))
+        ts_element.setAttribute('canceled', str(result.canceled_count))
+        ts_element.setAttribute('tests', str(total_count))
+        ts_element.setAttribute('time', str(self.elapsedtime))
+        # ts_element.setAttribute('timestamp', str(time.strftime("%Y-%m-%d%H%:M%:S", time.localtime())))
+        ts_element.setAttribute('timestamp', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
+        ts_element.setAttribute('hostname', '{0}({1})'.format(self.local_hostname, self.local_ip))
+        # ts_element.appendChild(doc.createTextNode(''))
+        for res in result.all:
+            # self.logger.debug(res)
+            tc_element = doc.createElement('testcase')
+            tc_element.setAttribute('classname', str(res[1].__class__))
+            tc_element.setAttribute('name', str(res[1]))
+            tc_element.setAttribute('time', res[4])
+            tc_element.appendChild(doc.createTextNode(''))
+            ts_element.appendChild(tc_element)
+        rootElement.appendChild(ts_element)
+
+        with open(self.result_xml, 'w') as f:
+            doc.writexml(f, addindent='  ', newl='\n', encoding='utf-8')
 
         return True
 
