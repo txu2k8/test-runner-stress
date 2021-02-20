@@ -873,8 +873,8 @@ class StressRunner(object):
         for res in result.all:
             # self.logger.debug(res)
             tc_element = doc.createElement('testcase')
-            tc_element.setAttribute('classname', str(res[1].__class__))
-            tc_element.setAttribute('name', str(res[1]))
+            tc_element.setAttribute('classname', "%s.%s" % (res[1].__class__.__module__, res[1].__class__.__qualname__))
+            tc_element.setAttribute('name', str(res[1]._testMethodName))
             tc_element.setAttribute('time', res[4])
             tc_element.appendChild(doc.createTextNode(''))
             ts_element.appendChild(tc_element)
