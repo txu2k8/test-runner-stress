@@ -749,7 +749,7 @@ class StressRunner(object):
             "Name": self.local_hostname,
             "Status": "Ready",
             "IPAddress": self.local_ip,
-            "Roles": "Test VM",
+            "Roles": "Executor",
             "User": "root",
             "Password": "********",
             "OS": platform.system(),
