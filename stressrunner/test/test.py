@@ -17,13 +17,14 @@ class UnitTestCase(unittest.TestCase):
         self.assertTrue('1')
         print("---- test1 test1 test1 test1 test1 ...")
 
-    def atest_2(self):
-        import random
-        self.assertEqual(1, random.choice(range(3)))
+    @unittest.skip("skip this case")
+    def test_2(self):
+        self.assertTrue('1')
         print("---- test2 test2 test2 test2 test2 ...")
 
     def test_3(self):
-        self.assertTrue('1')
+        import random
+        self.assertEqual(1, random.choice(range(3)))
         print("---- test3 test3 test3 test3 test3 ...")
 
 

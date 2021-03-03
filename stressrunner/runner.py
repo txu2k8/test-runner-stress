@@ -36,8 +36,9 @@ import copy
 import re
 import os
 import sys
+import platform
 import time
-from datetime import date, datetime
+import datetime
 import io
 import socket
 import traceback
@@ -102,6 +103,11 @@ def get_local_hostname():
     return socket.gethostname()
 
 
+def seconds_to_string(seconds):
+    # str(stop_time - start_time).split('.')[0]
+    return "{:0>8}".format(str(datetime.timedelta(seconds=seconds)))
+
+
 def escape(value):
     """
     Escape a single value of a URL string or a query parameter. If it is a list
@@ -115,7 +121,7 @@ def escape(value):
         value = ",".join(value)
 
     # dates and datetimes into isoformat
-    elif isinstance(value, (date, datetime)):
+    elif isinstance(value, (datetime.date, datetime.datetime)):
         value = value.isoformat()
 
     # make bools into true/false strings
@@ -239,8 +245,8 @@ class _TestResult(unittest.TestResult):
 
         self.loop = 1
         self.tc_loop = 0
-        self.tc_start_time = datetime.now()  # test case start time
-        self.ts_start_time = datetime.now()  # test suite start time
+        self.tc_start_time = datetime.datetime.now()  # test case start time
+        self.ts_start_time = datetime.datetime.now()  # test suite start time
 
     @staticmethod
     def get_description(test):
@@ -288,9 +294,9 @@ class _TestResult(unittest.TestResult):
         self._stderr_buffer.seek(0)
         self._stderr_buffer.truncate()
 
-        tc_stop_time = datetime.now()
-        tc_elapsedtime = str(tc_stop_time - self.tc_start_time).split('.')[0]
-        ts_elapsedtime = str(tc_stop_time - self.ts_start_time).split('.')[0]
+        tc_stop_time = datetime.datetime.now()
+        tc_elapsedtime = (tc_stop_time - self.tc_start_time).seconds
+        ts_elapsedtime = (tc_stop_time - self.ts_start_time).seconds
         for test_item, err in (self.errors + self.failures):
             if test_item == test:
                 output_info += "{test_info}:".format(test_info=test)
@@ -300,7 +306,7 @@ class _TestResult(unittest.TestResult):
     def startTest(self, test):
         self.logger.info("[START ] {0} -- iteration: {1}".format(str(test), self.loop))
         self.all.append((4, test, '', '', '', self.loop))
-        self.tc_start_time = datetime.now()
+        self.tc_start_time = datetime.datetime.now()
         unittest.TestResult.startTest(self, test)
         self._setup_output()
 
@@ -348,7 +354,7 @@ class _TestResult(unittest.TestResult):
         # recursive retry test
         if retry_flag:
             test = copy.copy(test)
-            self.tc_start_time = datetime.now()
+            self.tc_start_time = datetime.datetime.now()
             test(self)
         else:
             self.tc_loop = 0  # update for next test case loop=0
@@ -497,7 +503,7 @@ class StressRunner(object):
         self.test_nodes = test_nodes  # dict list, item.keys: Name, Status, IPAddress, Roles, User, Password
 
         # --------------- test status ---------------
-        self.start_time = datetime.now()
+        self.start_time = datetime.datetime.now()
         self.stop_time = ''
         self.elapsedtime = ''
         self.passrate = ''
@@ -576,17 +582,17 @@ class StressRunner(object):
         except Exception as e:
             self.logger.error(e)
             self.logger.error('{err}'.format(err=traceback.format_exc()))
-            failed_time = str(datetime.now() - _result.tc_start_time).split('.')[0]
+            failed_elapsed_time = (datetime.datetime.now() - _result.tc_start_time).seconds
             sn, t, o, e, d, lp = _result.all[-1]
             if sn == 4:
                 _result.all.pop(-1)
-                _result.all.append((2, t, o, e, failed_time, lp))
+                _result.all.append((2, t, o, e, failed_elapsed_time, lp))
         finally:
             self.logger.info(_result)
             if _result.testsRun < 1:
                 return _result
-            self.stop_time = datetime.now()
-            self.elapsedtime = str(self.stop_time - self.start_time).split('.')[0]
+            self.stop_time = datetime.datetime.now()
+            self.elapsedtime = (self.stop_time - self.start_time).seconds
             self.report_title = test_status + ": " + self.report_title
             self.generate_report(_result)
             self.generate_xml(_result)
@@ -625,7 +631,7 @@ class StressRunner(object):
         # result.print_errors()
         for res in result.all:
             msg = "{stat} - {tc} - Iteration: {iter} - Elapsed: {elapsed}" \
-                .format(stat=STATUS[res[0]], tc=res[1], iter=res[5], elapsed=res[4])
+                .format(stat=STATUS[res[0]], tc=res[1], iter=res[5], elapsed=seconds_to_string(res[4]))
             self.logger.info(msg)
             err_failure = res[3].strip('\n')
             if err_failure:
@@ -643,7 +649,7 @@ class StressRunner(object):
         self.logger.info("Skipped: {0}".format(result.skipped_count))
         self.logger.info("Canceled: {0}".format(result.canceled_count))
         self.logger.info("Total: {0}".format(total_count))
-        self.logger.info('Time Elapsed: {0}'.format(self.elapsedtime))
+        self.logger.info('Time Elapsed: {0}'.format(seconds_to_string(self.elapsedtime)))
         self.logger.info('JunitXml Path: {0}'.format(self.result_xml))
         self.logger.info('ReportHtml Path: {0}'.format(self.report_html))
         self.logger.info('Test Location: {0}({1})'.format(self.local_hostname, self.local_ip))
@@ -693,11 +699,13 @@ class StressRunner(object):
             'Version': self.test_version,
             'Start': str(self.start_time).split('.')[0],
             'End': str(self.stop_time).split('.')[0],
-            'Elapsed': self.elapsedtime,
+            'Elapsed': seconds_to_string(self.elapsedtime),
             'Summary': self.summary,
             'Location': '{0}({1})'.format(self.local_hostname, self.local_ip),
+            'Workspace': os.getcwd(),
             'Report': self.report_html,
             'Command': 'python ' + ' '.join(sys.argv),
+            'Python': platform.python_version(),
         }
         if self.test_desc:
             attr = dict(attr, **({'Description': self.test_desc}))
@@ -741,12 +749,14 @@ class StressRunner(object):
             "Name": self.local_hostname,
             "Status": "Ready",
             "IPAddress": self.local_ip,
-            "Roles": "Test Host",
+            "Roles": "Test VM",
             "User": "root",
             "Password": "********",
+            "OS": platform.system(),
         })
         html_template = """
         <tr id='node_%d' class='nodes'>
+            <td colspan='1' align='center''>%s</td>
             <td colspan='1' align='center''>%s</td>
             <td colspan='1' align='center''>%s</td>
             <td colspan='1' align='center''>%s</td>
@@ -758,7 +768,7 @@ class StressRunner(object):
         tr = ""
         for idx, node in enumerate(nodes_info):
             tr += html_template % (idx, node["Name"], node["Status"], node["IPAddress"],
-                                   node["Roles"], node["User"], node["Password"])
+                                   node["Roles"], node["User"], node["Password"], node["OS"])
         return tr
 
     def _get_result_table_string(self, result):
@@ -805,7 +815,7 @@ class StressRunner(object):
                 else:
                     style = 'none'
 
-                tr += html_template % (cid, style, desc, STATUS[n], d, l)
+                tr += html_template % (cid, style, desc, STATUS[n], seconds_to_string(d), l)
                 if output:
                     tr += msg_template % (cid, style, output)
         return tr
@@ -823,7 +833,7 @@ class StressRunner(object):
         output = REPORT_TEMPLATE % dict(
             Title=self.report_title,
             Generator=__author__,
-            Description=attr,
+            Environment=attr,
             Nodes=nodes,
             Total=str(total_count),
             Pass=str(result.success_count),
@@ -858,7 +868,7 @@ class StressRunner(object):
         rootElement = doc.documentElement
         # rootElement = doc.createElement('testsuites')
         ts_element = doc.createElement('testsuite')
-        ts_element.setAttribute('name', 'pytest')
+        ts_element.setAttribute('name', 'test')
         ts_element.setAttribute('errors', str(result.error_count))
         ts_element.setAttribute('failures', str(result.failure_count))
         ts_element.setAttribute('skipped', str(result.skipped_count))
@@ -876,7 +886,26 @@ class StressRunner(object):
             tc_element.setAttribute('classname', "%s.%s" % (res[1].__class__.__module__, res[1].__class__.__qualname__))
             tc_element.setAttribute('name', str(res[1]._testMethodName))
             tc_element.setAttribute('time', res[4])
-            tc_element.appendChild(doc.createTextNode(''))
+            # tc_element.appendChild(doc.createTextNode(''))
+
+            if res[2] != "":  # has system output
+                output_element = doc.createElement('system-output')
+                output_element.appendChild(doc.createTextNode(res[2]))
+                tc_element.appendChild(output_element)
+
+            if res[0] == 3:  # skiped
+                skiped_element = doc.createElement('skiped')
+                skiped_element.setAttribute('message', res[3])  # reason
+                # skiped_element.appendChild(doc.createTextNode(''))
+                tc_element.appendChild(skiped_element)
+
+            err_failure = res[3].strip('\n')
+            if res[0] in [1, 2] and err_failure:  # Error, Fail
+                failure_element = doc.createElement('failure')
+                failure_element.setAttribute('message', err_failure.split("\n")[-1])
+                failure_element.setAttribute('type',  "WARNING")
+                failure_element.appendChild(doc.createTextNode(err_failure))
+                tc_element.appendChild(failure_element)
             ts_element.appendChild(tc_element)
         rootElement.appendChild(ts_element)
 

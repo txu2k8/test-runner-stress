@@ -176,10 +176,10 @@ REPORT_TEMPLATE = r"""
     </div>
 
     <!-- Test Env Information: -->
-    <b> <span lang="EN-US" style="font-size:14.0pt">Description:</span> </b>
+    <b> <span lang="EN-US" style="font-size:14.0pt">Environment:</span> </b>
     <table id='env_table' class="table table-condensed table-bordered table-hover">
         <!-- test ENV Description list -->
-        %(Description)s
+        %(Environment)s
     </table>
     </br>
 
@@ -193,6 +193,7 @@ REPORT_TEMPLATE = r"""
             <col align='right' />
             <col align='right' />
             <col align='right' />
+            <col align='right' />
         </colgroup>
         <tr id='env_table_header' class="text-center success" style="font-weight: bold;font-size: 14px;">
             <td align='center'>NodeName</td>
@@ -201,6 +202,7 @@ REPORT_TEMPLATE = r"""
             <td align='center'>Roles</td>
             <td align='center'>User</td>
             <td align='center'>Password</td>
+            <td align='center'>OS</td>
         </tr>
         <!-- test nodes list -->
         %(Nodes)s
@@ -240,8 +242,8 @@ REPORT_TEMPLATE = r"""
     </table>
     </br>
 
-    <!-- case_table -->
-    <b> <span lang="EN-US" style="font-size:14.0pt">Details:</span> </b>
+    <!-- case_results_table -->
+    <b> <span lang="EN-US" style="font-size:14.0pt">Results:</span> </b>
     <table id='result_table' class="table table-condensed table-bordered table-hover">
         <colgroup>
             <col align='left' />
