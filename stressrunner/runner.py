@@ -718,7 +718,7 @@ class StressRunner(object):
         """
         att_template = """
         <tr id='attr_%d' class='attr'>
-            <td colspan='1' align='left' width='8%%'>%s</td>
+            <td colspan='1' align='left' width='10%%'>%s</td>
             <td colspan='1' align='left'>%s</td>
         </tr>
         """
@@ -888,16 +888,16 @@ class StressRunner(object):
             tc_element.setAttribute('time', str(res[4]))
             # tc_element.appendChild(doc.createTextNode(''))
 
-            if res[2] != "":  # has system output
-                output_element = doc.createElement('system-output')
-                output_element.appendChild(doc.createTextNode(res[2]))
-                tc_element.appendChild(output_element)
-
             if res[0] == 3:  # skiped
                 skiped_element = doc.createElement('skiped')
                 skiped_element.setAttribute('message', res[3])  # reason
                 # skiped_element.appendChild(doc.createTextNode(''))
                 tc_element.appendChild(skiped_element)
+            '''
+            if res[2] != "":  # has system output
+                output_element = doc.createElement('system-output')
+                output_element.appendChild(doc.createTextNode(res[2]))
+                tc_element.appendChild(output_element)
 
             err_failure = res[3].strip('\n')
             if res[0] in [1, 2] and err_failure:  # Error, Fail
@@ -906,6 +906,7 @@ class StressRunner(object):
                 failure_element.setAttribute('type',  "WARNING")
                 failure_element.appendChild(doc.createTextNode(err_failure))
                 tc_element.appendChild(failure_element)
+            '''
             ts_element.appendChild(tc_element)
         rootElement.appendChild(ts_element)
 
