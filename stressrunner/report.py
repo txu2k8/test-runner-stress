@@ -25,7 +25,14 @@ REPORT_TEMPLATE = r"""
         /* -- heading ---------------------------------------------------------------------- */
         h1 {
             font-size: 16pt;
-            color: gray;
+        }
+        
+        .h_green {
+            color: #6c6;
+        }
+        
+        .h_red {
+            color: #FF0000;
         }
 
         .heading {
@@ -143,17 +150,17 @@ REPORT_TEMPLATE = r"""
         }
 
         .failCase {
-            color: #c60;
+            color: #FF0000;
             font-weight: bold;
         }
 
         .errorCase {
-            color: #c00;
+            color: #900000;
             font-weight: bold;
         }
         
         .skipCase {
-            color: #f0a20d;
+            color: #F0A20D;
             font-weight: bold;
         }
 
@@ -172,7 +179,7 @@ REPORT_TEMPLATE = r"""
 <body>
     <!-- Title -->
     <div class='heading'>
-        <h1> %(Title)s </h1>
+        <h1 class=%(TitleColor)s> %(Title)s </h1>
     </div>
 
     <!-- Test Env Information: -->

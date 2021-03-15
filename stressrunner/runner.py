@@ -548,7 +548,7 @@ class StressRunner(object):
         :return:
         """
         _result = _TestResult(self.logger, self.verbosity)
-        test_status = 'ERROR'
+        test_status = STATUS[2]  # 'ERROR'
         retry_flag = True
         try:
             while retry_flag:
@@ -561,7 +561,7 @@ class StressRunner(object):
                 running_test(_result)
                 _result.ts_loop += 1
                 fail_count = _result.failure_count + _result.error_count
-                test_status = 'FAILED' if fail_count > 0 else 'PASSED'
+                test_status = STATUS[1] if fail_count > 0 else STATUS[0] # 0-'PASSED', 1-'FAILED'
                 del running_test
 
                 if fail_count > 0:
@@ -573,11 +573,11 @@ class StressRunner(object):
         except KeyboardInterrupt:
             self.logger.info("Script stoped by user --> ^C")
             if (_result.failure_count + _result.error_count) > 0:
-                test_status = 'FAILED'
+                test_status = STATUS[1]  # 'FAILED'
             elif _result.success_count <= 0:
-                test_status = 'CANCELED'
+                test_status = STATUS[4]  # 'CANCELED'
             else:
-                test_status = 'PASSED'
+                test_status = STATUS[0]  # 'PASSED'
             _result.add_canceled()
         except Exception as e:
             self.logger.error(e)
@@ -756,13 +756,13 @@ class StressRunner(object):
         })
         html_template = """
         <tr id='node_%d' class='nodes'>
-            <td colspan='1' align='center''>%s</td>
-            <td colspan='1' align='center''>%s</td>
-            <td colspan='1' align='center''>%s</td>
-            <td colspan='1' align='center''>%s</td>
-            <td colspan='1' align='center''>%s</td>
-            <td colspan='1' align='center''>%s</td>
-            <td colspan='1' align='center''>%s</td>
+            <td colspan='1' align='center'>%s</td>
+            <td colspan='1' align='center'>%s</td>
+            <td colspan='1' align='center'>%s</td>
+            <td colspan='1' align='center'>%s</td>
+            <td colspan='1' align='center'>%s</td>
+            <td colspan='1' align='center'>%s</td>
+            <td colspan='1' align='center'>%s</td>
         </tr>
         """
         tr = ""
@@ -790,9 +790,10 @@ class StressRunner(object):
 
         tr = ""
         sorted_result = self._sort_result(result.all)
-        for cid, (cls, cls_results) in enumerate(sorted_result):
+        print(sorted_result)
+        for cid_1, (cls, cls_results) in enumerate(sorted_result):
             np = nf = ne = ns = 0
-            for n, t, o, e, d, l in cls_results:
+            for cid_2, (n, t, o, e, d, l) in enumerate(cls_results):
                 name = t.id().split('.')[-1]
                 doc = t.shortDescription() or ""
                 desc = doc and ('%s: %s' % (name, doc)) or name
@@ -814,7 +815,7 @@ class StressRunner(object):
                     style = 'passCase'
                 else:
                     style = 'none'
-
+                cid = int("{0}{1}".format(cid_1, cid_2))
                 tr += html_template % (cid, style, desc, STATUS[n], seconds_to_string(d), l)
                 if output:
                     tr += msg_template % (cid, style, output)
@@ -830,8 +831,10 @@ class StressRunner(object):
         attr = self._get_attributes_table_string(result)
         results = self._get_result_table_string(result)
         nodes = self._get_nodes_table_string(self.test_nodes)
+        title_color = "h_red" if STATUS[1] in self.report_title or STATUS[2] in self.report_title else "h_green"
         output = REPORT_TEMPLATE % dict(
             Title=self.report_title,
+            TitleColor=title_color,
             Generator=__author__,
             Environment=attr,
             Nodes=nodes,

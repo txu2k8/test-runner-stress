@@ -5,7 +5,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 
 <head>
-    <title>FAILED: report-1.2.3</title>
+    <title>FAIL: report-1.2.3</title>
     <meta name="generator" content="tao.xu">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <style type="text/css" media="screen">
@@ -21,7 +21,14 @@
         /* -- heading ---------------------------------------------------------------------- */
         h1 {
             font-size: 16pt;
-            color: gray;
+        }
+        
+        .h_green {
+            color: #6c6;
+        }
+        
+        .h_red {
+            color: #FF0000;
         }
 
         .heading {
@@ -139,17 +146,17 @@
         }
 
         .failCase {
-            color: #c60;
+            color: #FF0000;
             font-weight: bold;
         }
 
         .errorCase {
-            color: #c00;
+            color: #900000;
             font-weight: bold;
         }
         
         .skipCase {
-            color: #f0a20d;
+            color: #F0A20D;
             font-weight: bold;
         }
 
@@ -168,7 +175,7 @@
 <body>
     <!-- Title -->
     <div class='heading'>
-        <h1> FAILED: report-1.2.3 </h1>
+        <h1 class=h_red> FAIL: report-1.2.3 </h1>
     </div>
 
     <!-- Test Env Information: -->
@@ -188,12 +195,12 @@
         
         <tr id='attr_3' class='attr'>
             <td colspan='1' align='left' width='10%'>Start</td>
-            <td colspan='1' align='left'>2021-03-15 09:32:16</td>
+            <td colspan='1' align='left'>2021-03-15 11:35:31</td>
         </tr>
         
         <tr id='attr_4' class='attr'>
             <td colspan='1' align='left' width='10%'>End</td>
-            <td colspan='1' align='left'>2021-03-15 09:32:16</td>
+            <td colspan='1' align='left'>2021-03-15 11:35:31</td>
         </tr>
         
         <tr id='attr_5' class='attr'>
@@ -203,7 +210,7 @@
         
         <tr id='attr_6' class='attr'>
             <td colspan='1' align='left' width='10%'>Summary</td>
-            <td colspan='1' align='left'>ALL 6, Pass 3, Failure 1, Skip 2, Passing rate: 75%</td>
+            <td colspan='1' align='left'>ALL 3, Pass 1, Failure 1, Skip 1, Passing rate: 50%</td>
         </tr>
         
         <tr id='attr_7' class='attr'>
@@ -268,13 +275,13 @@
         <!-- test nodes list -->
         
         <tr id='node_0' class='nodes'>
-            <td colspan='1' align='center''>LAPTOP-9M6BOS48</td>
-            <td colspan='1' align='center''>Ready</td>
-            <td colspan='1' align='center''>10.116.4.8</td>
-            <td colspan='1' align='center''>Executor</td>
-            <td colspan='1' align='center''>root</td>
-            <td colspan='1' align='center''>********</td>
-            <td colspan='1' align='center''>Windows</td>
+            <td colspan='1' align='center'>LAPTOP-9M6BOS48</td>
+            <td colspan='1' align='center'>Ready</td>
+            <td colspan='1' align='center'>10.116.4.8</td>
+            <td colspan='1' align='center'>Executor</td>
+            <td colspan='1' align='center'>root</td>
+            <td colspan='1' align='center'>********</td>
+            <td colspan='1' align='center'>Windows</td>
         </tr>
         
     </table>
@@ -302,13 +309,13 @@
         </tr>
         <!-- summary_row -->
         <tr id='result_tabl' class="text-center success">
-            <td>6</td>
             <td>3</td>
             <td>1</td>
+            <td>1</td>
             <td>0</td>
-            <td>2</td>
+            <td>1</td>
             <td>0</td>
-            <td>75%</td>
+            <td>50%</td>
         </tr>
     </table>
     </br>
@@ -339,57 +346,31 @@
             <td colspan='1' align='center'>1</td>
         </tr>
         
-        <tr id='result_0' class='skipCase'>
+        <tr id='result_1' class='skipCase'>
             <td colspan='1' align='left'>test_2</td>
             <td colspan='1' align='center'>SKIP</td>
             <td colspan='1' align='center'>00:00:00</td>
             <td colspan='1' align='center'>1</td>
         </tr>
         
-        <tr id='msg_0' class='skipCase'>
+        <tr id='msg_1' class='skipCase'>
             <td colspan='1' align='left'>Message</td>
             <td colspan='3' align='left'><pre>skip this case</pre></td>
         </tr>
         
-        <tr id='result_0' class='passCase'>
-            <td colspan='1' align='left'>test_3</td>
-            <td colspan='1' align='center'>PASS</td>
-            <td colspan='1' align='center'>00:00:00</td>
-            <td colspan='1' align='center'>1</td>
-        </tr>
-        
-        <tr id='result_0' class='passCase'>
-            <td colspan='1' align='left'>test_1</td>
-            <td colspan='1' align='center'>PASS</td>
-            <td colspan='1' align='center'>00:00:00</td>
-            <td colspan='1' align='center'>2</td>
-        </tr>
-        
-        <tr id='result_0' class='skipCase'>
-            <td colspan='1' align='left'>test_2</td>
-            <td colspan='1' align='center'>SKIP</td>
-            <td colspan='1' align='center'>00:00:00</td>
-            <td colspan='1' align='center'>2</td>
-        </tr>
-        
-        <tr id='msg_0' class='skipCase'>
-            <td colspan='1' align='left'>Message</td>
-            <td colspan='3' align='left'><pre>skip this case</pre></td>
-        </tr>
-        
-        <tr id='result_0' class='failCase'>
+        <tr id='result_2' class='failCase'>
             <td colspan='1' align='left'>test_3</td>
             <td colspan='1' align='center'>FAIL</td>
             <td colspan='1' align='center'>00:00:00</td>
-            <td colspan='1' align='center'>2</td>
+            <td colspan='1' align='center'>1</td>
         </tr>
         
-        <tr id='msg_0' class='failCase'>
+        <tr id='msg_2' class='failCase'>
             <td colspan='1' align='left'>Message</td>
             <td colspan='3' align='left'><pre>test_3 (__main__.UnitTestCase):Traceback (most recent call last):
   File "C:/workspace/stress-runner/stressrunner/test/test.py", line 27, in test_3
     self.assertEqual(1, random.choice(range(3)))
-AssertionError: 1 != 0
+AssertionError: 1 != 2
 </pre></td>
         </tr>
         
