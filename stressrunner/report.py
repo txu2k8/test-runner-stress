@@ -257,7 +257,7 @@ REPORT_TEMPLATE = r"""
             <td align='center'>Test Group/Case</td>
             <td align='center'>Status</td>
             <td align='center'>Elapsed Time</td>
-            <td align='center'>Iteration</td>
+            <td align='center'>Loop</td>
         </tr>
         <!-- test case list -->
         %(Results)s

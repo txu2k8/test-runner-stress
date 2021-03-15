@@ -243,7 +243,7 @@ class _TestResult(unittest.TestResult):
         self.skipped_count = 0
         self.canceled_count = 0
 
-        self.loop = 1
+        self.ts_loop = 1
         self.tc_loop = 0
         self.tc_start_time = datetime.datetime.now()  # test case start time
         self.ts_start_time = datetime.datetime.now()  # test suite start time
@@ -304,8 +304,8 @@ class _TestResult(unittest.TestResult):
         return output_info, tc_elapsedtime, ts_elapsedtime
 
     def startTest(self, test):
-        self.logger.info("[START ] {0} -- iteration: {1}".format(str(test), self.loop))
-        self.all.append((4, test, '', '', '', self.loop))
+        self.logger.info("[START ] {0} -- Loop: {1}".format(str(test), self.ts_loop))
+        self.all.append((4, test, '', '', '', self.ts_loop))
         self.tc_start_time = datetime.datetime.now()
         unittest.TestResult.startTest(self, test)
         self._setup_output()
@@ -334,9 +334,9 @@ class _TestResult(unittest.TestResult):
         unittest.TestResult.addSuccess(self, test)
 
         output, tc_elapsedtime, ts_elapsedtime = self._restore_output(test)
-        self.all.append((sn, test, output, '', tc_elapsedtime, self.loop))
+        self.all.append((sn, test, output, '', tc_elapsedtime, self.ts_loop))
         if self.showAll:
-            self.logger.info(self.msg.format(status, str(test), self.loop, tc_elapsedtime))
+            self.logger.info(self.msg.format(status, str(test), self.ts_loop, tc_elapsedtime))
             self.logger.info("Total Elapsedtime: {0}".format(ts_elapsedtime))
         elif self.showStatus:
             self.logger.info(status)
@@ -366,9 +366,9 @@ class _TestResult(unittest.TestResult):
         unittest.TestResult.addError(self, test, err)
         _, str_e = self.errors[-1]
         output, tc_elapsedtime, ts_elapsedtime = self._restore_output(test)
-        self.all.append((sn, test, output, str_e, tc_elapsedtime, self.loop))
+        self.all.append((sn, test, output, str_e, tc_elapsedtime, self.ts_loop))
         if self.showAll:
-            self.logger.critical(self.msg.format(status, str(test), self.loop, tc_elapsedtime))
+            self.logger.critical(self.msg.format(status, str(test), self.ts_loop, tc_elapsedtime))
             self.logger.info("Total Elapsedtime: {0}".format(ts_elapsedtime))
         elif self.showStatus:
             self.logger.critical(status)
@@ -386,9 +386,9 @@ class _TestResult(unittest.TestResult):
         unittest.TestResult.addFailure(self, test, err)
         _, str_e = self.failures[-1]
         output, tc_elapsedtime, ts_elapsedtime = self._restore_output(test)
-        self.all.append((sn, test, output, str_e, tc_elapsedtime, self.loop))
+        self.all.append((sn, test, output, str_e, tc_elapsedtime, self.ts_loop))
         if self.showAll:
-            self.logger.critical(self.msg.format(status, str(test), self.loop, tc_elapsedtime))
+            self.logger.critical(self.msg.format(status, str(test), self.ts_loop, tc_elapsedtime))
             self.logger.info("Total Elapsedtime: {0}".format(ts_elapsedtime))
         elif self.showStatus:
             self.logger.critical(status)
@@ -405,9 +405,9 @@ class _TestResult(unittest.TestResult):
         self.skipped_count += 1
         unittest.TestResult.addSkip(self, test, reason)
         output, tc_elapsedtime, ts_elapsedtime = self._restore_output(test)
-        self.all.append((sn, test, output, reason, tc_elapsedtime, self.loop))
+        self.all.append((sn, test, output, reason, tc_elapsedtime, self.ts_loop))
         if self.showAll:
-            self.logger.warning(self.msg.format(status, str(test), self.loop, tc_elapsedtime))
+            self.logger.warning(self.msg.format(status, str(test), self.ts_loop, tc_elapsedtime))
             self.logger.info("Total Elapsedtime: {0}".format(ts_elapsedtime))
         elif self.showStatus:
             self.logger.warning(status)
@@ -427,9 +427,9 @@ class _TestResult(unittest.TestResult):
         self.canceled.append((test, 'Canceled'))
 
         output, tc_elapsedtime, ts_elapsedtime = self._restore_output(test)
-        self.all.append((sn, test, output, '', tc_elapsedtime, self.loop))
+        self.all.append((sn, test, output, '', tc_elapsedtime, self.ts_loop))
         if self.showAll:
-            self.logger.info(self.msg.format(status, str(test), self.loop, tc_elapsedtime))
+            self.logger.info(self.msg.format(status, str(test), self.ts_loop, tc_elapsedtime))
             self.logger.info("Total Elapsedtime: {0}".format(ts_elapsedtime))
         elif self.showStatus:
             self.logger.info(status)
@@ -463,7 +463,7 @@ class StressRunner(object):
     separator1 = '=' * 70
     separator2 = '-' * 70
 
-    def __init__(self, report_html=None, result_xml=None, logger=None, iteration=1, verbosity=2,
+    def __init__(self, report_html=None, result_xml=None, logger=None, loop=1, verbosity=2,
                  tester=TESTER, test_version=None, description=None, report_title=REPORT_TITLE,
                  test_env=None, test_nodes=None):
         """
@@ -471,7 +471,7 @@ class StressRunner(object):
         Args:
             report_html: default ./report.html
             logger:
-            iteration: the max test iteration
+            loop: the max test loop
             verbosity: 2: show All
             :param tester:
             :param test_version:
@@ -488,7 +488,7 @@ class StressRunner(object):
         self.report_html = report_html or self.default_report_html
         self.result_xml = result_xml or self.default_result_xml
         self.logger = logger or self.default_logger
-        self.iteration = iteration
+        self.loop = loop
         self.verbosity = verbosity
         self.save_last_result = True
 
@@ -552,21 +552,21 @@ class StressRunner(object):
         retry_flag = True
         try:
             while retry_flag:
-                # retry test suite by iteration
+                # retry test suite by Loop
                 running_test = copy.deepcopy(test)
                 self.logger.info("Test Case List:")
                 for _test in running_test._tests:
                     self.logger.info(_test)
 
                 running_test(_result)
-                _result.loop += 1
+                _result.ts_loop += 1
                 fail_count = _result.failure_count + _result.error_count
                 test_status = 'FAILED' if fail_count > 0 else 'PASSED'
                 del running_test
 
                 if fail_count > 0:
                     retry_flag = False
-                elif self.iteration == 0 or self.iteration >= _result.loop:
+                elif self.loop == 0 or self.loop >= _result.ts_loop:
                     retry_flag = True
                 else:
                     retry_flag = False
@@ -630,8 +630,8 @@ class StressRunner(object):
         self.logger.info(self.separator1)
         # result.print_errors()
         for res in result.all:
-            msg = "{stat} - {tc} - Iteration: {iter} - Elapsed: {elapsed}" \
-                .format(stat=STATUS[res[0]], tc=res[1], iter=res[5], elapsed=seconds_to_string(res[4]))
+            msg = "{stat} - {tc} - Loop: {loop} - Elapsed: {elapsed}" \
+                .format(stat=STATUS[res[0]], tc=res[1], loop=res[5], elapsed=seconds_to_string(res[4]))
             self.logger.info(msg)
             err_failure = res[3].strip('\n')
             if err_failure:
@@ -777,7 +777,7 @@ class StressRunner(object):
             <td colspan='1' align='left'>%s</td>
             <td colspan='1' align='center'>%s</td>
             <td colspan='1' align='center'>%s</td>
-            <td colspan='1' align='center'>Loop: %d</td>
+            <td colspan='1' align='center'>%d</td>
         </tr>
         """
 
