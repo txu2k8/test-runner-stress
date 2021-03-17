@@ -790,7 +790,6 @@ class StressRunner(object):
 
         tr = ""
         sorted_result = self._sort_result(result.all)
-        print(sorted_result)
         for cid_1, (cls, cls_results) in enumerate(sorted_result):
             np = nf = ne = ns = 0
             for cid_2, (n, t, o, e, d, l) in enumerate(cls_results):
