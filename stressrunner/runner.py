@@ -718,7 +718,7 @@ class StressRunner(object):
         """
         att_template = """
         <tr id='attr_%d' class='attr'>
-            <td colspan='1' align='left' width='10%%'>%s</td>
+            <td colspan='1' align='left' width='15%%'>%s</td>
             <td colspan='1' align='left'>%s</td>
         </tr>
         """
