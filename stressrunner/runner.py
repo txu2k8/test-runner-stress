@@ -900,15 +900,16 @@ class StressRunner(object):
                 output_element = doc.createElement('system-output')
                 output_element.appendChild(doc.createTextNode(res[2]))
                 tc_element.appendChild(output_element)
+            '''
 
-            err_failure = res[3].strip('\n')
-            if res[0] in [1, 2] and err_failure:  # Error, Fail
+            if res[0] in [1, 2]:  # Error, Fail
+                err_failure = res[3].strip('\n')
                 failure_element = doc.createElement('failure')
                 failure_element.setAttribute('message', err_failure.split("\n")[-1])
-                failure_element.setAttribute('type',  "WARNING")
-                failure_element.appendChild(doc.createTextNode(err_failure))
+                failure_element.setAttribute('type',  "Error")
+                # failure_element.appendChild(doc.createTextNode(err_failure))
                 tc_element.appendChild(failure_element)
-            '''
+
             ts_element.appendChild(tc_element)
         rootElement.appendChild(ts_element)
 
